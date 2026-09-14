@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
 def get_frameworks(env):
 	if env.IOS:
-		return ['Foundation', 'UIKit', 'QuartzCore', 'GameController', 'SystemConfiguration', 'CFNetwork', 'AVFoundation', 'CoreGraphics']
+		return ['Foundation', 'UIKit', 'QuartzCore', 'GameController', 'SystemConfiguration', 'CFNetwork', 'AVFoundation', 'CoreGraphics', 'AudioToolbox']
 	if env.DEST_OS == 'darwin':
 		return ['IOKit', 'CoreFoundation']
 	return []
@@ -131,6 +131,11 @@ def configure(conf):
 	
 	for i in get_frameworks(conf.env):
 		conf.check(features='c cprogram', framework=i, uselib_store=i, msg='Checking for %s framework' % i)
+
+	if conf.env.IOS:
+		# CoreHaptics is only available since iOS 13, keep it weak-linked
+		# to stay compatible with the iOS 12 deployment target
+		conf.env.LDFLAGS += ['-Wl,-weak_framework,CoreHaptics']
 
 	conf.define('ENGINE_DLL', 1)
 

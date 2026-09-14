@@ -57,6 +57,7 @@ int IOS_GetArgs( char ***argv );
 const char *IOS_GetDocsDir( void );
 const char *IOS_GetExecDir( void );
 void IOS_LaunchDialog( void );
+void IOS_Vibrate( float time, int amplitude );
 #endif // TARGET_OS_IOS
 
 #if XASH_WIN32 || XASH_LINUX
@@ -252,6 +253,13 @@ static inline qboolean Platform_LibraryExists( const char *name, qboolean gamedi
 #if XASH_SDL >= 2
 void Platform_Vibrate( float life, char flags ); // left for compatibility
 void Platform_Vibrate2( float time, int low_freq, int high_freq, uint flags );
+
+// single-motor phone vibrator, use the stronger of the two channels and scale to 1..255 amplitude
+static inline int Platform_VibrateAmplitude( int low_freq, int high_freq )
+{
+	int amplitude = ( low_freq > high_freq ? low_freq : high_freq );
+	return 1 + ( amplitude * 254 ) / 0xFFFF;
+}
 #else
 static inline void Platform_Vibrate( float life, char flags ) {}
 static inline void Platform_Vibrate2( float time, int low_freq, int high_freq, uint flags ) {}

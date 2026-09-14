@@ -316,15 +316,16 @@ void Platform_Vibrate2( float time, int val1, int val2, uint flags )
 		Uint32 ms = (Uint32)ceil( time );
 		SDL_RumbleGamepad( gc, val1, val2, ms );
 	}
-#if XASH_ANDROID
+#if XASH_ANDROID || XASH_IOS
 	else
 	{
-		// single-motor phone vibrator, use the stronger of the two channels and scale to 1..255 amplitude
-		int amplitude = ( val1 > val2 ? val1 : val2 );
-		amplitude = 1 + ( amplitude * 254 ) / 0xFFFF;
-		Android_Vibrate( time, amplitude );
+#if XASH_ANDROID
+		Android_Vibrate( time, Platform_VibrateAmplitude( val1, val2 ));
+#elif XASH_IOS
+		IOS_Vibrate( time, Platform_VibrateAmplitude( val1, val2 ));
+#endif
 	}
-#endif // XASH_ANDROID
+#endif // XASH_ANDROID || XASH_IOS
 }
 
 /*
