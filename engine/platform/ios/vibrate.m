@@ -16,8 +16,8 @@ GNU General Public License for more details.
 #import <AudioToolbox/AudioServices.h>
 #import <CoreHaptics/CoreHaptics.h>
 
-static CHHapticEngine *g_hapticEngine;
-static id<CHHapticAdvancedPatternPlayer> g_hapticPlayer;
+static CHHapticEngine *g_hapticEngine API_AVAILABLE( ios(13.0) );
+static id<CHHapticAdvancedPatternPlayer> g_hapticPlayer API_AVAILABLE( ios(13.0) );
 
 static bool IOS_HapticsAvailable( void )
 {
@@ -30,6 +30,9 @@ static bool IOS_HapticsAvailable( void )
 
 static bool IOS_HapticsInit( void )
 {
+	if( !@available( iOS 13.0, * ))
+		return false;
+
 	NSError *error = nil;
 
 	g_hapticEngine = [[CHHapticEngine alloc] initAndReturnError:&error];
@@ -56,6 +59,9 @@ static bool IOS_HapticsInit( void )
 
 static void IOS_HapticsStop( void )
 {
+	if( !@available( iOS 13.0, * ))
+		return;
+
 	if( g_hapticPlayer )
 	{
 		[g_hapticPlayer stopAtTime:0 error:nil];
@@ -77,6 +83,9 @@ void IOS_Vibrate( float time, int amplitude )
 		AudioServicesPlaySystemSound( kSystemSoundID_Vibrate );
 		return;
 	}
+
+	if( !@available( iOS 13.0, * ))
+		return;
 
 	@autoreleasepool
 	{
@@ -109,7 +118,7 @@ void IOS_Vibrate( float time, int amplitude )
 			duration:duration];
 
 		CHHapticPattern *pattern = [[CHHapticPattern alloc]
-			initWithEvents:[NSArray arrayWithObject:event] parameters:nil error:&error];
+			initWithEvents:[NSArray arrayWithObject:event] parameters:@[] error:&error];
 
 		[event release];
 		[sharpnessParam release];
