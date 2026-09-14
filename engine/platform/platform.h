@@ -57,7 +57,7 @@ int IOS_GetArgs( char ***argv );
 const char *IOS_GetDocsDir( void );
 const char *IOS_GetExecDir( void );
 void IOS_LaunchDialog( void );
-void IOS_Vibrate( float time, int amplitude );
+void IOS_Vibrate( float time, int low_freq, int high_freq );
 #endif // TARGET_OS_IOS
 
 #if XASH_WIN32 || XASH_LINUX
@@ -93,7 +93,7 @@ void Android_Init( void );
 void *Android_GetNativeObject( const char *name );
 int Android_GetKeyboardHeight( void );
 void Android_Shutdown( void );
-void Android_Vibrate( float time, int amplitude );
+void Android_Vibrate( float time, int low_freq, int high_freq );
 #endif
 
 #if XASH_WIN32

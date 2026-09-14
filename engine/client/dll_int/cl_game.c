@@ -2192,6 +2192,10 @@ static void GAME_EXPORT pfnCalcShake( void )
 
 	float frametime = cl_clientframetime();
 
+	// get initial fraction and frequency values over the duration
+	float fraction = ((float)cl.time - shake->time ) / shake->duration;
+	float freq = fraction != 0.0f ? ( shake->frequency / fraction ) * shake->frequency : 0.0f;
+
 	if( cl.time > shake->next_shake )
 	{
 		// get next shake time based on frequency over duration
@@ -2201,14 +2205,12 @@ static void GAME_EXPORT pfnCalcShake( void )
 		for( int i = 0; i < 3; i++ )
 			shake->offset[i] = COM_RandomFloat( -shake->amplitude, shake->amplitude );
 		shake->angle = COM_RandomFloat( -shake->amplitude * 0.25f, shake->amplitude * 0.25f );
+
+		// fire the vibration impulse in step with the shake, sized to bridge
+		// to the next impulse regardless of the frame rate
+		Mobile_ShakeVibrate( shake->amplitude * fraction * fraction, shake->frequency,
+			bound( 50.0f, ( shake->frequency / shake->duration ) * 1000.0f, 500.0f ));
 	}
-
-	// get initial fraction and frequency values over the duration
-	float fraction = ((float)cl.time - shake->time ) / shake->duration;
-	float freq = fraction != 0.0f ? ( shake->frequency / fraction ) * shake->frequency : 0.0f;
-
-	// keep motors running slightly past the frame so they stop by themselves if the shake is never updated again
-	Mobile_ShakeVibrate( shake->amplitude * fraction * fraction, shake->frequency, 100.0f );
 
 	// quickly approach zero but apply time over sine wave
 	fraction *= fraction * sin( cl.time * freq );

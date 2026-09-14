@@ -48,8 +48,17 @@ void Mobile_ShakeVibrate( float amplitude, float frequency, float time )
 		return;
 
 	// screen shake amplitude is 4.12 fixed point, frequency is 8.8 fixed point
-	float strength = bound( 0.0f, amplitude * ( 1.0f / 16.0f ) * vibration_shake.value, 1.0f );
+	float strength = bound( 0.0f, amplitude * ( 1.0f / 16.0f ), 1.0f );
 	float mix = bound( 0.0f, frequency * ( 1.0f / 256.0f ), 1.0f );
+
+	// responsive curve: lift weak shakes and soften the hard clamp of the linear mapping
+	strength = sqrtf( strength ) * vibration_shake.value;
+
+	// skip barely perceptible vibrations to save battery
+	if( strength < 0.05f )
+		return;
+	if( strength > 1.0f )
+		strength = 1.0f;
 
 	// low frequency shakes are jerks for the heavy motor, high frequency shakes are rumbles for the light motor
 	int low_freq = strength * ( 1.0f - mix ) * 0xFFFF;

@@ -130,7 +130,7 @@ Android_Vibrate
 
 =======================
 */
-void Android_Vibrate( float time, int amplitude )
+void Android_Vibrate( float time, int low_freq, int high_freq )
 {
 	if( !jni.env || !jni.activity || !jni.vibrate || !jni.vibrateStop )
 		return;
@@ -140,6 +140,9 @@ void Android_Vibrate( float time, int amplitude )
 		(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.vibrateStop );
 		return;
 	}
+
+	// single-motor phones don't have two channels, use the stronger of the two
+	int amplitude = Platform_VibrateAmplitude( low_freq, high_freq );
 
 	(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.vibrate, (jlong)time, (jint)amplitude );
 }

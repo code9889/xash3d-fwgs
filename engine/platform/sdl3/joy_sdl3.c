@@ -320,9 +320,9 @@ void Platform_Vibrate2( float time, int val1, int val2, uint flags )
 	else
 	{
 #if XASH_ANDROID
-		Android_Vibrate( time, Platform_VibrateAmplitude( val1, val2 ));
+		Android_Vibrate( time, val1, val2 );
 #elif XASH_IOS
-		IOS_Vibrate( time, Platform_VibrateAmplitude( val1, val2 ));
+		IOS_Vibrate( time, val1, val2 );
 #endif
 	}
 #endif // XASH_ANDROID || XASH_IOS

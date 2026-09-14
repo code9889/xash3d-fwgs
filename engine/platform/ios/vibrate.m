@@ -15,9 +15,11 @@ GNU General Public License for more details.
 
 #import <AudioToolbox/AudioServices.h>
 #import <CoreHaptics/CoreHaptics.h>
+#import <math.h>
 
 static CHHapticEngine *g_hapticEngine API_AVAILABLE( ios(13.0) );
 static id<CHHapticAdvancedPatternPlayer> g_hapticPlayer API_AVAILABLE( ios(13.0) );
+static float g_impulseDuration = -1.0f;
 
 static bool IOS_HapticsAvailable( void )
 {
@@ -67,12 +69,13 @@ static void IOS_HapticsStop( void )
 		[g_hapticPlayer stopAtTime:0 error:nil];
 		[g_hapticPlayer release];
 		g_hapticPlayer = nil;
+		g_impulseDuration = -1.0f;
 	}
 }
 
-void IOS_Vibrate( float time, int amplitude )
+void IOS_Vibrate( float time, int low_freq, int high_freq )
 {
-	if( time <= 0.0f || amplitude <= 0 )
+	if( time <= 0.0f )
 	{
 		IOS_HapticsStop();
 		return;
@@ -97,45 +100,64 @@ void IOS_Vibrate( float time, int amplitude )
 			return;
 		}
 
-		IOS_HapticsStop();
-
-		float intensity = (float)amplitude / 255.0f;
-		if( intensity > 1.0f ) intensity = 1.0f;
-		else if( intensity < 0.0f ) intensity = 0.0f;
-
 		double duration = time / 1000.0; // time is in milliseconds
 		if( duration < 0.05 )
 			duration = 0.05; // CoreHaptics rejects too short continuous events
+		if( duration > 0.5 )
+			duration = 0.5; // keep the pattern bounded
 
-		CHHapticEventParameter *intensityParam = [[CHHapticEventParameter alloc]
-			initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intensity];
-		CHHapticEventParameter *sharpnessParam = [[CHHapticEventParameter alloc]
-			initWithParameterID:CHHapticEventParameterIDHapticSharpness value:0.5f];
-		CHHapticEvent *event = [[CHHapticEvent alloc]
-			initWithEventType:CHHapticEventTypeHapticContinuous
-			parameters:[NSArray arrayWithObjects:intensityParam, sharpnessParam, nil]
-			relativeTime:0
-			duration:duration];
+		// single-motor phone: take the stronger of the two rumble channels for the
+		// intensity, and use the channel balance as the sharpness - low frequency
+		// jerks feel sharp and percussive, high frequency rumbles feel smooth
+		int chan = ( low_freq > high_freq ) ? low_freq : high_freq;
+		int sum = low_freq + high_freq;
+		float mix = sum > 0 ? (float)high_freq / (float)sum : 0.5f;
+		float intensity = (float)( 1 + ( chan * 254 ) / 0xFFFF ) / 255.0f;
+		float sharpness = 1.0f - mix;
 
-		CHHapticPattern *pattern = [[CHHapticPattern alloc]
-			initWithEvents:[NSArray arrayWithObject:event] parameters:@[] error:&error];
-
-		[event release];
-		[sharpnessParam release];
-		[intensityParam release];
-
-		if( !pattern )
-			return;
-
-		g_hapticPlayer = [g_hapticEngine createAdvancedPlayerWithPattern:pattern error:&error];
-		if( !g_hapticPlayer )
+		if( !g_hapticPlayer || (float)fabs( g_impulseDuration - duration ) > 0.001f )
 		{
-			[pattern release];
-			return;
-		}
+			// the impulse length changed, rebuild the event and the player
+			IOS_HapticsStop();
 
-		[g_hapticPlayer retain];
-		[pattern release];
+			CHHapticEventParameter *intensityParam = [[CHHapticEventParameter alloc]
+				initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intensity];
+			CHHapticEventParameter *sharpnessParam = [[CHHapticEventParameter alloc]
+				initWithParameterID:CHHapticEventParameterIDHapticSharpness value:sharpness];
+			CHHapticEvent *event = [[CHHapticEvent alloc]
+				initWithEventType:CHHapticEventTypeHapticContinuous
+				parameters:[NSArray arrayWithObjects:intensityParam, sharpnessParam, nil]
+				relativeTime:0
+				duration:duration];
+
+			CHHapticPattern *pattern = [[CHHapticPattern alloc]
+				initWithEvents:[NSArray arrayWithObject:event] parameters:@[] error:&error];
+
+			[event release];
+			[sharpnessParam release];
+			[intensityParam release];
+
+			if( !pattern )
+				return;
+
+			g_hapticPlayer = [g_hapticEngine createAdvancedPlayerWithPattern:pattern error:&error];
+			[pattern release];
+			if( !g_hapticPlayer )
+				return;
+
+			[g_hapticPlayer retain];
+			g_impulseDuration = duration;
+		}
+		else
+		{
+			// reuse the cached player, only update the strength of the running event
+			CHHapticDynamicParameter *intensityDyn = [CHHapticDynamicParameter
+				dynamicParameterWithParameterID:CHHapticDynamicParameterIDHapticIntensityControl value:intensity];
+			CHHapticDynamicParameter *sharpnessDyn = [CHHapticDynamicParameter
+				dynamicParameterWithParameterID:CHHapticDynamicParameterIDHapticSharpnessControl value:sharpness];
+
+			[g_hapticPlayer sendParameters:[NSArray arrayWithObjects:intensityDyn, sharpnessDyn, nil] atTime:0 error:&error];
+		}
 
 		[g_hapticPlayer startAtTime:0 error:nil];
 	}
