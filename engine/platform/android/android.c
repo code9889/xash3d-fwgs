@@ -34,6 +34,8 @@ struct jnimethods_s
 	jmethodID loadAndroidID;
 	jmethodID getAndroidID;
 	jmethodID saveAndroidID;
+	jmethodID vibrate;
+	jmethodID vibrateStop;
 } jni;
 
 void Android_Init( void )
@@ -47,6 +49,8 @@ void Android_Init( void )
 	jni.loadAndroidID = (*jni.env)->GetMethodID( jni.env, jni.actcls, "loadAndroidID", "()Ljava/lang/String;" );
 	jni.getAndroidID = (*jni.env)->GetMethodID( jni.env, jni.actcls, "getAndroidID", "()Ljava/lang/String;" );
 	jni.saveAndroidID = (*jni.env)->GetMethodID( jni.env, jni.actcls, "saveAndroidID", "(Ljava/lang/String;)V" );
+	jni.vibrate = (*jni.env)->GetMethodID( jni.env, jni.actcls, "vibrate", "(JI)V" );
+	jni.vibrateStop = (*jni.env)->GetMethodID( jni.env, jni.actcls, "vibrateStop", "()V" );
 #endif // !XASH_SDL
 }
 
@@ -118,6 +122,26 @@ void Android_SaveID( const char *id )
 	jstring JStr = (*jni.env)->NewStringUTF( jni.env, id );
 	(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.saveAndroidID, JStr );
 	(*jni.env)->DeleteLocalRef( jni.env, JStr );
+}
+
+/*
+=======================
+Android_Vibrate
+
+=======================
+*/
+void Android_Vibrate( float time, int amplitude )
+{
+	if( !jni.env || !jni.activity || !jni.vibrate || !jni.vibrateStop )
+		return;
+
+	if( time <= 0.0f )
+	{
+		(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.vibrateStop );
+		return;
+	}
+
+	(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.vibrate, (jlong)time, (jint)amplitude );
 }
 
 /*

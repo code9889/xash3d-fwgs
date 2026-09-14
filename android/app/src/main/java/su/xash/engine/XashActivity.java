@@ -7,6 +7,8 @@ import android.content.res.AssetManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.provider.Settings.Secure;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -25,6 +27,33 @@ public class XashActivity extends SDLActivity {
 	private boolean mUseVolumeKeys;
 	private String mPackageName;
 	private static final String TAG = "XashActivity";
+	private Vibrator mVibrator;
+
+	private Vibrator getVibrator() {
+		if (mVibrator == null)
+			mVibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+		return mVibrator;
+	}
+
+	public void vibrate(long durationMs, int amplitude) {
+		Vibrator vibrator = getVibrator();
+		if (vibrator == null || !vibrator.hasVibrator())
+			return;
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+			if (amplitude <= 0 || amplitude > 255)
+				amplitude = VibrationEffect.DEFAULT_AMPLITUDE;
+			vibrator.vibrate(VibrationEffect.createOneShot(Math.max(durationMs, 1), amplitude));
+		} else {
+			vibrator.vibrate(Math.max(durationMs, 1));
+		}
+	}
+
+	public void vibrateStop() {
+		Vibrator vibrator = getVibrator();
+		if (vibrator != null && vibrator.hasVibrator())
+			vibrator.cancel();
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {

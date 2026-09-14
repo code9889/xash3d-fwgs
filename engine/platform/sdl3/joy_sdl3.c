@@ -303,19 +303,28 @@ void Platform_CalibrateGamepadGyro( void )
 
 void Platform_Vibrate2( float time, int val1, int val2, uint flags )
 {
-	SDL_Gamepad *gc = g_current_gamepad;
-
-	if( g_current_gamepad_id == 0 || !gc )
-		return;
-
 	if( val1 < 0 )
 		val1 = COM_RandomLong( 0x7FFF, 0xFFFF );
 
 	if( val2 < 0 )
 		val2 = COM_RandomLong( 0x7FFF, 0xFFFF );
 
-	Uint32 ms = (Uint32)ceil( time );
-	SDL_RumbleGamepad( gc, val1, val2, ms );
+	SDL_Gamepad *gc = g_current_gamepad;
+
+	if( g_current_gamepad_id != 0 && gc )
+	{
+		Uint32 ms = (Uint32)ceil( time );
+		SDL_RumbleGamepad( gc, val1, val2, ms );
+	}
+#if XASH_ANDROID
+	else
+	{
+		// single-motor phone vibrator, use the stronger of the two channels and scale to 1..255 amplitude
+		int amplitude = ( val1 > val2 ? val1 : val2 );
+		amplitude = 1 + ( amplitude * 254 ) / 0xFFFF;
+		Android_Vibrate( time, amplitude );
+	}
+#endif // XASH_ANDROID
 }
 
 /*

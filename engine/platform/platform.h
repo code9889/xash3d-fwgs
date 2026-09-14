@@ -92,6 +92,7 @@ void Android_Init( void );
 void *Android_GetNativeObject( const char *name );
 int Android_GetKeyboardHeight( void );
 void Android_Shutdown( void );
+void Android_Vibrate( float time, int amplitude );
 #endif
 
 #if XASH_WIN32
